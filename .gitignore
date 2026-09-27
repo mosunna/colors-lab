@@ -1,0 +1,11 @@
+# Server-specific configuration (contains real DB credentials) — never commit this
+api/config.php
+
+# OS/editor cruft
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+
+# Logs
+*.log
