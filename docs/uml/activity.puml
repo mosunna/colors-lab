@@ -1,0 +1,88 @@
+@startuml activity
+title COLORS Web Application - Activity Diagram
+
+|User / Browser (code.js)|
+start
+:Open index.html (login page);
+repeat
+  :Enter username and password;
+  :Click "Do It" -> doLogin();
+  :Reset userId, firstName, lastName;
+  :Build JSON {login, password};
+  :POST /LAMPAPI/Login.php;
+
+  |PHP API|
+  :Login.php: decode JSON request;
+  if (DB connection OK?) then (yes)
+    |MySQL Database|
+    :SELECT ID, firstName, lastName\nFROM Users\nWHERE Login=? AND Password=?;
+    |PHP API|
+    if (matching row found?) then (yes)
+      :returnWithInfo()\n{id, firstName, lastName};
+    else (no)
+      :returnWithError("No Records Found")\n{id:0, ...};
+    endif
+  else (no)
+    :returnWithError(connect_error);
+  endif
+
+  |User / Browser (code.js)|
+  :Parse JSON response, set userId;
+repeat while (userId < 1?) is (yes: show "User/Password\ncombination incorrect")
+-> no;
+
+:saveCookie()\n(firstName, lastName, userId; expires in 20 min);
+:Redirect to color.html;
+:readCookie() on page load;
+if (userId found in cookie?) then (no)
+  :Redirect to index.html;
+  stop
+else (yes)
+endif
+
+repeat
+  :Choose an action on color.html;
+  switch (Action?)
+  case (Add Color)
+    :Enter color name, click "Add Color";
+    :addColor(): POST /LAMPAPI/AddColor.php\n{color, userId};
+    |PHP API|
+    :AddColor.php: decode JSON request;
+    |MySQL Database|
+    :INSERT INTO Colors (UserId, Name)\nVALUES (?, ?);
+    |PHP API|
+    :returnWithError(empty string)
+(empty error = success);
+    |User / Browser (code.js)|
+    :Show "Color has been added";
+  case (Search Colors)
+    :Enter search text, click "Search Color";
+    :searchColor(): POST /LAMPAPI/SearchColors.php\n{search, userId};
+    |PHP API|
+    :SearchColors.php: decode JSON request;
+    |MySQL Database|
+    :SELECT Name FROM Colors\nWHERE Name LIKE %search% AND UserID=?;
+    |PHP API|
+    if (any rows?) then (yes)
+      :returnWithInfo()\n{results:[...]};
+    else (no)
+      :returnWithError("No Records Found");
+    endif
+    |User / Browser (code.js)|
+    :Show "Color(s) has been retrieved";
+    :Render results into #colorList;
+note right
+  If no rows matched, the response has
+  no "results" array, so the list is
+  not updated.
+end note
+  case (Log Out)
+    :doLogout(): clear user variables;
+    :Expire cookie;
+    :Redirect to index.html;
+    stop
+  endswitch
+repeat while (Continue on color page?) is (yes)
+-> no;
+stop
+@enduml

@@ -1,0 +1,128 @@
+@startuml class
+!pragma layout smetana
+title COLORS Web Application - Class Diagram
+
+skinparam classAttributeIconSize 0
+hide empty members
+
+package "Front End (public/)" {
+  class "index.html" as IndexPage <<page>> {
+    + loginName : input
+    + loginPassword : input
+    + loginButton : button
+    + loginResult : span
+  }
+
+  class "color.html" as ColorPage <<page>> {
+    + userName : span
+    + logoutButton : button
+    + searchText : input
+    + searchColorButton : button
+    + colorSearchResult : span
+    + colorList : p
+    + colorText : input
+    + addColorButton : button
+    + colorAddResult : span
+  }
+
+  class "code.js" as CodeJS <<script>> {
+    - urlBase : string = "http://COP4331-5.com/LAMPAPI"
+    - extension : string = "php"
+    - userId : int
+    - firstName : string
+    - lastName : string
+    + doLogin() : void
+    + saveCookie() : void
+    + readCookie() : void
+    + doLogout() : void
+    + addColor() : void
+    + searchColor() : void
+  }
+
+  class "md5.js" as MD5 <<library>> {
+    + md5(string) : string
+  }
+}
+
+package "Back End API (api/)" {
+  class "Login.php" as LoginAPI <<endpoint>> {
+    + getRequestInfo() : array
+    + sendResultInfoAsJson(obj) : void
+    + returnWithError(err) : void
+    + returnWithInfo(firstName, lastName, id) : void
+  }
+
+  class "AddColor.php" as AddColorAPI <<endpoint>> {
+    + getRequestInfo() : array
+    + sendResultInfoAsJson(obj) : void
+    + returnWithError(err) : void
+  }
+
+  class "SearchColors.php" as SearchAPI <<endpoint>> {
+    + getRequestInfo() : array
+    + sendResultInfoAsJson(obj) : void
+    + returnWithError(err) : void
+    + returnWithInfo(searchResults) : void
+  }
+
+  class "config.php" as Config <<config>> {
+    + DB_HOST : const
+    + DB_USER : const
+    + DB_PASS : const
+    + DB_NAME : const
+  }
+
+  class mysqli <<PHP built-in>> {
+    + connect_error : string
+    + prepare(sql) : mysqli_stmt
+    + close() : bool
+  }
+}
+
+package "Database (MySQL)" {
+  class Users <<table>> {
+    + ID : int <<PK>>
+    + FirstName : varchar
+    + LastName : varchar
+    + Login : varchar
+    + Password : varchar
+  }
+
+  class Colors <<table>> {
+    + ID : int <<PK>>
+    + Name : varchar
+    + UserID : int <<FK>>
+  }
+}
+
+' Page structure
+IndexPage ..> CodeJS : <<loads>>
+IndexPage ..> MD5 : <<loads>>
+ColorPage ..> CodeJS : <<loads>>
+CodeJS ..> ColorPage : redirects to /\nupdates DOM
+CodeJS ..> IndexPage : redirects to /\nreads inputs
+
+' Client -> API (AJAX POST, JSON)
+CodeJS ..> LoginAPI : POST {login, password}
+CodeJS ..> AddColorAPI : POST {color, userId}
+CodeJS ..> SearchAPI : POST {search, userId}
+
+' API -> config / DB
+LoginAPI ..> Config : <<require_once>>
+AddColorAPI ..> Config : <<require_once>>
+SearchAPI ..> Config : <<require_once>>
+LoginAPI ..> mysqli : <<uses>>
+AddColorAPI ..> mysqli : <<uses>>
+SearchAPI ..> mysqli : <<uses>>
+
+LoginAPI ..> Users : SELECT
+AddColorAPI ..> Colors : INSERT
+SearchAPI ..> Colors : SELECT ... LIKE
+
+Users "1" -- "0..*" Colors : owns >
+
+legend bottom left
+  md5.js is loaded by index.html, but the md5() call in doLogin() is commented out,
+  so the password is sent to Login.php as-is.
+endlegend
+@enduml

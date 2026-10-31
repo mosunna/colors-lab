@@ -1,0 +1,46 @@
+@startuml usecase
+!pragma layout smetana
+title COLORS Web Application - Use Case Diagram
+
+left to right direction
+skinparam packageStyle rectangle
+skinparam actorStyle awesome
+
+actor "User" as User
+actor "MySQL Database" as DB <<system>>
+
+rectangle "COLORS Web Application" {
+  usecase "Log In" as UC_Login
+  usecase "Display Login Error\n('User/Password combination incorrect')" as UC_LoginErr
+  usecase "Save Session Cookie\n(firstName, lastName, userId; 20 min)" as UC_SaveCookie
+
+  usecase "Access Color Page" as UC_Access
+  usecase "Verify Session Cookie" as UC_ReadCookie
+  usecase "Redirect to Login Page" as UC_Redirect
+
+  usecase "Search Colors\n(partial name match)" as UC_Search
+  usecase "Add Color" as UC_Add
+  usecase "Log Out" as UC_Logout
+}
+
+User --> UC_Login
+User --> UC_Access
+User --> UC_Search
+User --> UC_Add
+User --> UC_Logout
+
+UC_Login ..> UC_SaveCookie : <<include>>
+UC_LoginErr ..> UC_Login : <<extend>>\n[no matching user]
+
+UC_Access ..> UC_ReadCookie : <<include>>
+UC_Redirect ..> UC_ReadCookie : <<extend>>\n[no valid userId in cookie]
+
+UC_Login --> DB
+UC_Search --> DB
+UC_Add --> DB
+
+legend bottom
+  Search Colors and Add Color are performed from color.html and send the userId stored in the session cookie.
+  There is no registration use case: accounts are created directly in the Users table.
+endlegend
+@enduml
