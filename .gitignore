@@ -9,3 +9,6 @@ Thumbs.db
 
 # Logs
 *.log
+
+# Node.js lint tooling (installed in CI via npm ci)
+node_modules/
