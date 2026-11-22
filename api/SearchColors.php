@@ -3,8 +3,7 @@
 
 	$inData = getRequestInfo();
 
-	$searchResults = "";
-	$searchCount = 0;
+	$searchResults = [];
 
 	$conn = new mysqli(DB_HOST, DB_USER, DB_PASS, DB_NAME);
 	if ($conn->connect_error) 
@@ -22,15 +21,10 @@
 		
 		while($row = $result->fetch_assoc())
 		{
-			if( $searchCount > 0 )
-			{
-				$searchResults .= ",";
-			}
-			$searchCount++;
-			$searchResults .= '"' . $row["Name"] . '"';
+			$searchResults[] = $row["Name"];
 		}
 		
-		if( $searchCount == 0 )
+		if( count($searchResults) == 0 )
 		{
 			returnWithError( "No Records Found" );
 		}
@@ -56,13 +50,14 @@
 	
 	function returnWithError( $err )
 	{
-		$retValue = '{"id":0,"firstName":"","lastName":"","error":"' . $err . '"}';
+		// json_encode escapes quotes and other special characters safely
+		$retValue = json_encode(["id" => 0, "firstName" => "", "lastName" => "", "error" => $err]);
 		sendResultInfoAsJson( $retValue );
 	}
 	
 	function returnWithInfo( $searchResults )
 	{
-		$retValue = '{"results":[' . $searchResults . '],"error":""}';
+		$retValue = json_encode(["results" => $searchResults, "error" => ""]);
 		sendResultInfoAsJson( $retValue );
 	}
 	
