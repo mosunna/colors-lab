@@ -1,19 +1,24 @@
 {
   "name": "colors-lab",
   "version": "1.0.0",
-  "description": "COP 4331 Colors Lab (LAMP). Node.js is used only for linting tools in CI.",
+  "description": "COP 4331 Colors Lab (LAMP). Node.js is used only for linting and test tooling in CI, not to run the application.",
   "private": true,
   "scripts": {
     "lint": "npm run lint:js && npm run lint:css && npm run lint:html",
-    "lint:js": "eslint public/js",
+    "lint:js": "eslint public/js tests eslint.config.js jest.config.js",
     "lint:css": "stylelint \"public/**/*.css\"",
-    "lint:html": "htmlhint \"public/**/*.html\""
+    "lint:html": "htmlhint \"public/**/*.html\"",
+    "test": "npm run test:unit && npm run test:integration",
+    "test:unit": "jest tests/unit",
+    "test:integration": "jest tests/integration --runInBand"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
     "eslint": "^10.14.0",
     "globals": "^17.14.0",
     "htmlhint": "^1.9.2",
+    "jest": "^30.5.2",
+    "jest-environment-jsdom": "^30.5.2",
     "stylelint": "^18.0.0",
     "stylelint-config-standard": "^41.0.0"
   }

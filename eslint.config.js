@@ -18,11 +18,23 @@ module.exports = [
     },
   },
   {
-    files: ["eslint.config.js"],
+    files: ["eslint.config.js", "jest.config.js"],
     languageOptions: {
       sourceType: "commonjs",
       globals: {
         ...globals.node,
+      },
+    },
+  },
+  {
+    // Jest test files run in Node.js (with jsdom for the front-end unit tests)
+    files: ["tests/**/*.js"],
+    languageOptions: {
+      sourceType: "commonjs",
+      globals: {
+        ...globals.node,
+        ...globals.jest,
+        ...globals.browser,
       },
     },
   },

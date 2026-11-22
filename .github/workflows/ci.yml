@@ -1,0 +1,130 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  lint:
+    name: Lint HTML, CSS, and JavaScript
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js (tooling only)
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint JavaScript (ESLint)
+        if: always()
+        run: npm run lint:js
+
+      - name: Lint CSS (Stylelint)
+        if: always()
+        run: npm run lint:css
+
+      - name: Lint HTML (HTMLHint)
+        if: always()
+        run: npm run lint:html
+
+  unit-tests:
+    name: Front-end unit tests (Jest)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js (tooling only)
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run unit tests
+        run: npm run test:unit
+
+  integration-tests:
+    name: API integration tests (PHP + MySQL)
+    runs-on: ubuntu-latest
+
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: root
+          MYSQL_DATABASE: colors_test
+          MYSQL_USER: colors
+          MYSQL_PASSWORD: colors
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -uroot -proot"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=20
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.3"
+          extensions: mysqli
+          coverage: none
+
+      - name: Set up Node.js (test runner only)
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Create test database tables and seed data
+        run: |
+          mysql -h 127.0.0.1 -uroot -proot -e "ALTER USER 'colors'@'%' IDENTIFIED WITH mysql_native_password BY 'colors';"
+          mysql -h 127.0.0.1 -ucolors -pcolors colors_test < tests/integration/schema.sql
+
+      - name: Create API config for the test database
+        run: |
+          cat > api/config.php <<'EOF'
+          <?php
+          define('DB_HOST', '127.0.0.1');
+          define('DB_USER', 'colors');
+          define('DB_PASS', 'colors');
+          define('DB_NAME', 'colors_test');
+          EOF
+
+      - name: Start PHP API server
+        run: |
+          php -S 127.0.0.1:8000 -t api > php-server.log 2>&1 &
+          for i in $(seq 1 20); do
+            if curl -s -o /dev/null http://127.0.0.1:8000/; then exit 0; fi
+            sleep 1
+          done
+          echo "PHP server did not start"
+          cat php-server.log
+          exit 1
+
+      - name: Run integration tests
+        env:
+          API_URL: http://127.0.0.1:8000
+        run: npm run test:integration
+
+      - name: Show PHP server log
+        if: failure()
+        run: cat php-server.log

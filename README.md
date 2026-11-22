@@ -64,6 +64,26 @@ Once deployed, open a web browser and navigate to the server's domain or IP addr
 
 Logging out returns you to the login page.
 
+## Continuous Integration and Testing
+
+Every push and pull request runs the GitHub Actions workflow in `.github/workflows/ci.yml`, which has three jobs:
+
+- **Lint**: ESLint (JavaScript), Stylelint (CSS) and HTMLHint (HTML).
+- **Front-end unit tests**: Jest tests in `tests/unit/` load `public/js/code.js` into a simulated browser (jsdom) and check the requests it builds and how it displays results. No server is needed.
+- **API integration tests**: Jest tests in `tests/integration/` send real HTTP requests to the PHP endpoints. The workflow starts a MySQL database, loads `tests/integration/schema.sql`, and serves `api/` with PHP's built-in server.
+
+Node.js is used only for the linting and test tools; the application itself still runs on PHP and MySQL.
+
+To run them locally (requires Node.js; integration tests also need PHP and a MySQL database loaded with `tests/integration/schema.sql`):
+
+```
+npm ci
+npm run lint
+npm run test:unit
+php -S 127.0.0.1:8000 -t api          # in a separate terminal
+npm run test:integration
+```
+
 ## Assumptions, Limitations, and AI Usage
 
 **Assumptions / Limitations:**
